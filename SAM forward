@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Betting Log Parser</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c26;
+    --surface2: #1e2333;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --text2: #8a90a4;
+    --text3: #555c72;
+    --accent: #4f8ef7;
+    --accent-dim: rgba(79,142,247,0.12);
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.1);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.1);
+    --red: #f76464;
+    --red-dim: rgba(247,100,100,0.1);
+    --gray-dim: rgba(138,144,164,0.1);
+    --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .header {
+    width: 100%; max-width: 760px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #4f8ef7 0%, #7c5cf7 100%);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.04em; text-transform: uppercase; }
+  .version { font-size: 11px; color: var(--text3); background: var(--surface2); padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); }
+
+  /* ── Main card ── */
+  .card {
+    width: 100%; max-width: 760px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text3); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-title::before {
+    content: ''; display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── Textarea ── */
+  textarea {
+    width: 100%; min-height: 160px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--mono); font-size: 12px;
+    padding: 12px 14px; resize: vertical;
+    line-height: 1.55; outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea::placeholder { color: var(--text3); }
+  textarea:focus { border-color: var(--accent); }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: var(--radius-sm);
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text); cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  }
+  .btn:hover { background: var(--surface2); border-color: rgba(255,255,255,0.2); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    border-color: transparent;
+  }
+  .btn-primary:hover { background: #6ba0f9; border-color: transparent; }
+  .btn-ghost { color: var(--text2); }
+
+  /* ── Error ── */
+  .error-box {
+    margin-top: 10px; padding: 10px 14px;
+    background: var(--red-dim); border: 1px solid rgba(247,100,100,0.3);
+    border-radius: var(--radius-sm); font-size: 13px; color: var(--red);
+  }
+
+  /* ── Results ── */
+  .results { width: 100%; max-width: 760px; }
+  .result-section { margin-bottom: 1rem; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .section-label {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text2);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot-blue { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .result-card-inner { padding: 1rem 1.25rem; }
+
+  .meta-row {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+  .badge-open { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(79,142,247,0.25); }
+  .badge-lost { background: var(--red-dim); color: var(--red); border: 1px solid rgba(247,100,100,0.25); }
+  .badge-won { background: var(--green-dim); color: var(--green); border: 1px solid rgba(62,207,142,0.25); }
+  .badge-draw { background: var(--gray-dim); color: var(--text2); border: 1px solid var(--border); }
+  .badge-void { background: var(--gray-dim); color: var(--text3); border: 1px solid var(--border); }
+  .badge-halfwon { background: rgba(62,207,142,0.07); color: #7dd9b0; border: 1px solid rgba(62,207,142,0.2); }
+  .badge-halflost { background: rgba(247,100,100,0.07); color: #f09595; border: 1px solid rgba(247,100,100,0.2); }
+  .badge-cashout { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,166,35,0.25); }
+
+  .sel-list { margin-bottom: 12px; }
+  .sel-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text2);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .sel-item:last-child { border-bottom: none; }
+  .sel-name { flex: 1; }
+
+  /* ── Copy area ── */
+  .copy-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .copy-text {
+    font-family: var(--mono); font-size: 12.5px; color: var(--text);
+    white-space: pre-wrap; word-break: break-all; line-height: 1.7;
+    user-select: all;
+  }
+  .copy-footer {
+    display: flex; align-items: center; justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 13px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border2); background: transparent;
+    font-family: var(--sans); font-size: 12px; color: var(--text2);
+    cursor: pointer; transition: all 0.12s;
+  }
+  .copy-btn:hover { background: var(--surface2); color: var(--text); }
+  .copy-btn.copied { color: var(--green); border-color: rgba(62,207,142,0.4); }
+
+  /* ── Warn banner ── */
+  .warn-banner {
+    display: flex; align-items: flex-start; gap: 9px;
+    background: var(--amber-dim);
+    border: 1px solid rgba(245,166,35,0.25);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px; margin-bottom: 12px;
+    font-size: 13px; color: var(--amber);
+  }
+  .warn-banner .icon { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+
+  /* ── Empty state ── */
+  .empty {
+    display: flex; align-items: center; gap: 8px;
+    padding: 1rem 1.25rem;
+    font-size: 13px; color: var(--text3);
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px; background: var(--border);
+    margin: 1rem 0;
+  }
+
+  /* ── Highlight in copy ── */
+  .hl-key { color: var(--text3); }
+  .hl-val { color: var(--text); }
+  .hl-note { color: var(--accent); }
+
+  /* ── Query Log ── */
+  .log-wrap {
+    width: 100%; max-width: 760px;
+    margin-top: 1.5rem;
+  }
+  .log-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .log-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text2);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .dot-purple { background: #a78bfa; box-shadow: 0 0 6px #a78bfa; }
+  .log-counter {
+    font-size: 11px; color: var(--text3);
+    background: var(--surface2); padding: 2px 8px;
+    border-radius: 20px; border: 1px solid var(--border);
+  }
+  .log-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .log-empty {
+    display: flex; align-items: center; gap: 8px;
+    padding: 1rem 1.25rem;
+    font-size: 13px; color: var(--text3);
+  }
+  .log-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12px;
+  }
+  .log-table thead tr {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .log-table th {
+    padding: 8px 14px; text-align: left;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--text3);
+  }
+  .log-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text2);
+  }
+  .log-table tr:last-child td { border-bottom: none; }
+  .log-table tr:hover td { background: var(--surface2); }
+  .log-table td.event-name { color: var(--text); font-weight: 500; }
+  .log-table td.event-id {
+    font-family: var(--mono); font-size: 11px; color: var(--text3);
+  }
+  .log-table td.log-time { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .log-table td.log-trigger {}
+  .log-idx {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 10px; color: var(--text3); font-weight: 600; flex-shrink: 0;
+  }
+  .log-new td { animation: logFadeIn 0.4s ease; }
+  @keyframes logFadeIn {
+    from { background: rgba(79,142,247,0.1); }
+    to   { background: transparent; }
+  }
+  .badge-trigger-1 { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(79,142,247,0.25); }
+  .badge-trigger-2 { background: var(--green-dim); color: var(--green); border: 1px solid rgba(62,207,142,0.25); }
+
+  /* ── Footer ── */
+  .footer {
+    width: 100%; max-width: 760px;
+    text-align: center; font-size: 11px; color: var(--text3);
+    margin-top: 2rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 500px) {
+    body { padding: 1rem 0.75rem 3rem; }
+    .header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .card { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🎯</div>
+    <div>
+      <div class="logo-text">Betting Log Parser</div>
+      <div class="logo-sub">Settlement Check Tool</div>
+    </div>
+  </div>
+  <span class="version">v1.0</span>
+</header>
+
+<div class="card">
+  <div class="card-title">API Log Input</div>
+  <textarea id="log-input" spellcheck="false" placeholder='Paste the full API log JSON here...
+
+{
+  "Bets": [...],
+  "Selections": [...],
+  ...
+}'></textarea>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runParse()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Parse Log
+    </button>
+    <button class="btn btn-ghost" onclick="clearAll()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.8"/></svg>
+      Clear
+    </button>
+  </div>
+  <div id="error-zone"></div>
+</div>
+
+<div class="results" id="output-zone"></div>
+
+<!-- ── Query Log Panel ── -->
+<div class="log-wrap" id="log-wrap">
+  <div class="log-header">
+    <div class="log-title">
+      <span class="dot dot-purple"></span>查询记录 &nbsp;·&nbsp; Query Log
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="log-counter" id="log-counter">0 / 20</span>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="clearLog()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Clear Log
+      </button>
+    </div>
+  </div>
+  <div class="log-card" id="log-card">
+    <div class="log-empty" id="log-empty">— No records yet. Parse a log to start tracking.</div>
+    <table class="log-table" id="log-table" style="display:none;">
+      <thead>
+        <tr>
+          <th style="width:28px;">#</th>
+          <th>Event Name</th>
+          <th>Event ID</th>
+          <th>Triggered by</th>
+          <th>Parsed at</th>
+          <th style="width:60px;"></th>
+        </tr>
+      </thead>
+      <tbody id="log-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer class="footer">
+  Betting Log Parser · Internal Tool · SelectionStatus: 0 Open · 1 Lost · 2 Won · 3 Draw · 4 Canceled · 16 Half Lost · 17 Half Won · 32 Cash Out
+</footer>
+
+<script>
+const STATUS = {
+  0:  { label: 'Open',      cls: 'badge-open' },
+  1:  { label: 'Lost',      cls: 'badge-lost' },
+  2:  { label: 'Won',       cls: 'badge-won' },
+  3:  { label: 'Draw',      cls: 'badge-draw' },
+  4:  { label: 'Canceled',  cls: 'badge-void' },
+  16: { label: 'Half Lost', cls: 'badge-halflost' },
+  17: { label: 'Half Won',  cls: 'badge-halfwon' },
+  32: { label: 'Cash Out',  cls: 'badge-cashout' }
+};
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function badgeHtml(status) {
+  const s = STATUS[status] || { label: 'Status ' + status, cls: 'badge-void' };
+  return `<span class="badge ${s.cls}">${s.label}</span>`;
+}
+
+function clearAll() {
+  document.getElementById('log-input').value = '';
+  document.getElementById('error-zone').innerHTML = '';
+  document.getElementById('output-zone').innerHTML = '';
+}
+
+const _copyStore = {};
+
+function copyById(uid) {
+  const text = _copyStore[uid] || '';
+  const btn = document.getElementById(uid);
+  const orig = btn.innerHTML;
+  const svgCheck = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const restore = () => { btn.innerHTML = orig; btn.classList.remove('copied'); };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.innerHTML = svgCheck + ' Copied!';
+      btn.classList.add('copied');
+      setTimeout(restore, 2000);
+    }).catch(() => fallbackCopy(text, btn, svgCheck, orig, restore));
+  } else {
+    fallbackCopy(text, btn, svgCheck, orig, restore);
+  }
+}
+
+function fallbackCopy(text, btn, svgCheck, orig, restore) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  btn.innerHTML = svgCheck + ' Copied!';
+  btn.classList.add('copied');
+  setTimeout(restore, 2000);
+}
+
+function buildCopyBlock(text, uid) {
+  _copyStore[uid] = text;
+  const lines = text.split('\n').map(line => {
+    const m = line.match(/^([^:]+:)\s*(.+)$/);
+    if (m) return `<span class="hl-key">${esc(m[1])}</span> <span class="hl-val">${esc(m[2])}</span>`;
+    return `<span class="hl-note">${esc(line)}</span>`;
+  });
+  const svgCopy = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  return `
+    <div class="copy-block">
+      <div class="copy-text">${lines.join('\n')}</div>
+      <div class="copy-footer">
+        <button class="copy-btn" id="${uid}" onclick="copyById('${uid}')">
+          ${svgCopy} Copy to clipboard
+        </button>
+      </div>
+    </div>`;
+}
+
+/* ─── Query Log ─── */
+const MAX_LOG = 20;
+const queryLog = []; // { eventName, eventId, trigger, time }
+
+function clearLog() {
+  queryLog.length = 0;
+  renderLog();
+}
+
+function renderLog() {
+  const tbody  = document.getElementById('log-tbody');
+  const table  = document.getElementById('log-table');
+  const empty  = document.getElementById('log-empty');
+  const counter = document.getElementById('log-counter');
+
+  counter.textContent = queryLog.length + ' / ' + MAX_LOG;
+
+  if (queryLog.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = 'table';
+
+  tbody.innerHTML = queryLog.map((entry, i) => {
+    const triggerBadge = entry.trigger === 1
+      ? `<span class="badge badge-trigger-1" style="font-size:10px;">① Unsettled</span>`
+      : `<span class="badge badge-trigger-2" style="font-size:10px;">② Settlement</span>`;
+    const isNew = i === queryLog.length - 1 ? 'log-new' : '';
+    const uid = 'log-copy-' + i + '-' + entry.eventId.replace(/\W/g,'');
+    const copyText = `Event Name: ${entry.eventName}\nEvent ID: ${entry.eventId}`;
+    _copyStore[uid] = copyText;
+    const svgCopy = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+    return `<tr class="${isNew}">
+      <td><span class="log-idx">${queryLog.length - i}</span></td>
+      <td class="event-name">${esc(entry.eventName)}</td>
+      <td class="event-id">${esc(entry.eventId)}</td>
+      <td class="log-trigger">${triggerBadge}</td>
+      <td class="log-time">${entry.time}</td>
+      <td><button class="copy-btn" id="${uid}" onclick="copyById('${uid}')" style="padding:4px 9px;font-size:11px;white-space:nowrap;">${svgCopy} Copy</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function pushToLog(selections, trigger) {
+  const now = new Date();
+  const timeStr = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei',
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+  selections.forEach(s => {
+    const entry = {
+      eventName: s.EventName || s.SelectionName || 'Unknown',
+      eventId:   s.EventId   || 'N/A',
+      trigger,
+      time: timeStr
+    };
+    // Avoid exact duplicates within same parse (same eventId + same trigger)
+    const isDup = queryLog.some(e => e.eventId === entry.eventId && e.trigger === trigger && e.time === timeStr);
+    if (!isDup) {
+      queryLog.push(entry);
+      if (queryLog.length > MAX_LOG) queryLog.shift();
+    }
+  });
+  renderLog();
+}
+
+
+function runParse() {
+  const raw = document.getElementById('log-input').value.trim();
+  const errZone = document.getElementById('error-zone');
+  const outZone = document.getElementById('output-zone');
+  errZone.innerHTML = '';
+  outZone.innerHTML = '';
+
+  if (!raw) {
+    errZone.innerHTML = `<div class="error-box">⚠ Please paste a JSON log first.</div>`;
+    return;
+  }
+
+  let data;
+  try {
+    // JS Number can only safely represent integers up to 2^53-1.
+    // Ticket/Event IDs exceed this limit and get truncated by JSON.parse.
+    // Pre-process: wrap any bare integer >= 16 digits in double-quotes so
+    // they are parsed as strings and preserve their full value.
+    const safe = raw.replace(/:\s*(\d{16,})([,\}\]\s])/g, (_, num, trail) => `: "${num}"${trail}`);
+    data = JSON.parse(safe);
+  }
+  catch (e) {
+    errZone.innerHTML = `<div class="error-box">⚠ Invalid JSON — ${esc(e.message)}</div>`;
+    return;
+  }
+
+  const selections = data.Selections || [];
+  const bets = data.Bets || [];
+  const ticketId = (bets[0] && bets[0].TicketId) ? bets[0].TicketId : (data.SQLTicketId || 'N/A');
+  const now = new Date();
+
+  if (selections.length === 0) {
+    outZone.innerHTML = `<div class="result-card"><div class="empty">⚠ No Selections found in this log.</div></div>`;
+    return;
+  }
+
+  const openSels  = selections.filter(s => s.SelectionStatus === 0);
+  const checkSels = selections.filter(s => [1, 3, 4, 16, 17].includes(s.SelectionStatus));
+
+  let html = '';
+
+  /* ─── Section 1: Unsettled ─── */
+  html += `
+  <div class="result-section">
+    <div class="section-header">
+      <div class="section-label"><span class="dot dot-blue"></span>未结算投注检查 &nbsp;·&nbsp; Unsettled Bet Check</div>
+    </div>
+    <div class="result-card">`;
+
+  if (openSels.length === 0) {
+    html += `<div class="empty">✓ &nbsp;No open (unsettled) selections found in this log.</div>`;
+  } else {
+    const hasNotStarted = openSels.some(s => new Date(s.StartEventDate) > now);
+    const names = openSels.map(s => s.EventName || s.SelectionName || 'Unknown');
+    const multi = names.length > 1;
+    const eventLine = names.join(', ');
+    const verb = multi ? 'these' : 'it';
+    const msgBody = `EventName: ${eventLine}\nBet ID: ${ticketId}\nPlease check if ${verb} can be settled.`;
+    const notStartedMsg = '赛事尚未开始。';
+    const uid = 'u1-' + Date.now();
+
+    html += `<div class="result-card-inner">`;
+    html += `<div class="meta-row">`;
+    html += badgeHtml(0);
+    html += `<span style="font-size:12px;color:var(--text2);">${openSels.length} selection${openSels.length > 1 ? 's' : ''}</span>`;
+    html += `</div>`;
+
+    html += `<div class="sel-list">`;
+    openSels.forEach(s => {
+      const start = new Date(s.StartEventDate);
+      const notStarted = start > now;
+      html += `<div class="sel-item">
+        <span class="sel-name">${esc(s.EventName || s.SelectionName || 'Unknown')}</span>
+        ${notStarted ? `<span class="badge badge-void" style="font-size:10px;">⏳ Not started yet</span>` : ''}
+        <span style="font-size:11px;color:var(--text3);">${start.toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</span>
+      </div>`;
+    });
+    html += `</div>`;
+
+    if (hasNotStarted) {
+      html += `<div class="warn-banner">
+        <span class="icon">⚠</span>
+        <div>
+          <strong>赛事尚未开始</strong><br>
+          <span style="font-size:12px;">One or more events have not started yet. The copy template will output: 赛事尚未开始。</span>
+        </div>
+      </div>`;
+      html += buildCopyBlock(notStartedMsg, uid);
+    } else {
+      html += buildCopyBlock(msgBody, uid);
+    }
+    html += `</div>`;
+  }
+
+  html += `</div></div>`;
+
+  html += `<div class="divider"></div>`;
+
+  /* ─── Section 2: Settlement Verification ─── */
+  html += `
+  <div class="result-section">
+    <div class="section-header">
+      <div class="section-label"><span class="dot dot-green"></span>结算结果确认 &nbsp;·&nbsp; Settlement Verification</div>
+    </div>
+    <div class="result-card">`;
+
+  if (checkSels.length === 0) {
+    html += `<div class="empty">✓ &nbsp;No selections requiring settlement verification.</div>`;
+  } else {
+    const names2 = checkSels.map(s => s.EventName || s.SelectionName || 'Unknown');
+    const multi2 = names2.length > 1;
+    const eventLine2 = names2.join(', ');
+    const verb2 = multi2 ? 'the settlement of these' : 'the settlement of this';
+    const msgBody2 = `EventName: ${eventLine2}\nBet ID: ${ticketId}\nPlease check if ${verb2} is correct.`;
+    const uid2 = 'u2-' + Date.now();
+
+    html += `<div class="result-card-inner">`;
+    html += `<div class="meta-row">`;
+    const uniqueStatuses = [...new Set(checkSels.map(s => s.SelectionStatus))];
+    uniqueStatuses.forEach(st => { html += badgeHtml(st); });
+    html += `<span style="font-size:12px;color:var(--text2);">${checkSels.length} selection${checkSels.length > 1 ? 's' : ''}</span>`;
+    html += `</div>`;
+
+    html += `<div class="sel-list">`;
+    checkSels.forEach(s => {
+      html += `<div class="sel-item">
+        <span class="sel-name">${esc(s.EventName || s.SelectionName || 'Unknown')}</span>
+        ${badgeHtml(s.SelectionStatus)}
+      </div>`;
+    });
+    html += `</div>`;
+
+    html += buildCopyBlock(msgBody2, uid2);
+    html += `</div>`;
+  }
+
+  html += `</div></div>`;
+
+  outZone.innerHTML = html;
+
+  /* ─── Push to Query Log ─── */
+  if (openSels.length  > 0) pushToLog(openSels,  1);
+  if (checkSels.length > 0) pushToLog(checkSels, 2);
+}
+</script>
+</body>
+</html>
