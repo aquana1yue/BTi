@@ -6,10 +6,10 @@
 <title>Betting Log Parser</title>
 <style>
 :root {
-  --bg:        #f0f2f5;
+  --bg:        #eef0f5;
   --surface:   #ffffff;
   --surface2:  #f5f7fa;
-  --border:    #dde1e9;
+  --border:    #dde1ea;
   --border2:   #c8cdd8;
   --text:      #1a1d26;
   --text2:     #4b5263;
@@ -24,240 +24,274 @@
   --amber-bg:  #fef4e6;
   --gray-bg:   #f2f4f7;
   --shadow:    0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
-  --mono:      'JetBrains Mono','Fira Code','Courier New',monospace;
-  --sans:      'Inter',system-ui,-apple-system,sans-serif;
-  --r:         10px;
-  --r-sm:      6px;
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.09), 0 0 0 1px rgba(0,0,0,0.04);
+  --mono: 'JetBrains Mono','Fira Code','Courier New',monospace;
+  --sans: 'Inter',system-ui,-apple-system,sans-serif;
+  --r:    10px;
+  --r-sm: 6px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{font-size:15px;}
+html,body{height:100%;}
 body{
   font-family:var(--sans);background:var(--bg);color:var(--text);
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;
-  padding:2rem 1rem 4rem;line-height:1.6;
+  min-height:100vh;line-height:1.6;
 }
 
-/* Header */
-.header{
-  width:100%;max-width:800px;
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:1.75rem;padding-bottom:1.25rem;
+/* ── Top bar ── */
+.topbar{
+  background:var(--surface);
   border-bottom:1px solid var(--border);
+  padding:0 2rem;
+  height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  position:sticky;top:0;z-index:100;
 }
 .logo{display:flex;align-items:center;gap:10px;}
 .logo-icon{
-  width:38px;height:38px;border-radius:10px;
+  width:32px;height:32px;border-radius:8px;
   background:linear-gradient(135deg,#3b6ff0,#6b45e8);
-  display:flex;align-items:center;justify-content:center;font-size:19px;
-  box-shadow:0 2px 8px rgba(59,111,240,0.3);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 2px 6px rgba(59,111,240,0.3);flex-shrink:0;
 }
-.logo-text{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.01em;}
-.logo-sub{font-size:11px;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase;}
-.version{font-size:11px;color:var(--text3);background:var(--surface);padding:3px 9px;border-radius:20px;border:1px solid var(--border);}
+.logo-text{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.01em;}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;}
+.version{font-size:11px;color:var(--text3);background:var(--surface2);padding:3px 10px;border-radius:20px;border:1px solid var(--border);}
 
-/* Card */
+/* ── Two-column layout ── */
+.workspace{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  grid-template-rows:1fr;
+  height:calc(100vh - 56px);
+  overflow:hidden;
+}
+
+/* ── Left panel ── */
+.left-panel{
+  overflow-y:auto;
+  padding:1.5rem 1.25rem 1.5rem 1.75rem;
+  display:flex;flex-direction:column;gap:1rem;
+}
+
+/* ── Right panel ── */
+.right-panel{
+  border-left:1px solid var(--border);
+  background:var(--surface2);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+  padding:0;
+}
+.log-panel-header{
+  padding:1rem 1.25rem 0.75rem;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.log-panel-body{
+  flex:1;padding:1rem 1.25rem;
+  display:flex;flex-direction:column;gap:0;
+}
+
+/* ── Cards ── */
 .card{
-  width:100%;max-width:800px;
   background:var(--surface);border:1px solid var(--border);
-  border-radius:14px;padding:1.5rem;margin-bottom:1rem;
-  box-shadow:var(--shadow);
+  border-radius:var(--r);padding:1.25rem;box-shadow:var(--shadow);
 }
 .card-title{
-  font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:0.08em;color:var(--text3);margin-bottom:10px;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.09em;color:var(--text3);margin-bottom:10px;
   display:flex;align-items:center;gap:6px;
 }
 .card-title::before{
-  content:'';display:inline-block;width:3px;height:12px;
-  background:var(--accent);border-radius:2px;
+  content:'';width:3px;height:11px;background:var(--accent);
+  border-radius:2px;display:inline-block;
 }
 
-/* Textarea */
+/* ── Textarea ── */
 textarea{
-  width:100%;min-height:150px;
+  width:100%;min-height:130px;max-height:260px;
   background:var(--surface2);color:var(--text);
   border:1.5px solid var(--border);border-radius:var(--r-sm);
-  font-family:var(--mono);font-size:12px;padding:12px 14px;
+  font-family:var(--mono);font-size:11.5px;padding:10px 13px;
   resize:vertical;line-height:1.55;outline:none;transition:border-color 0.15s;
 }
 textarea::placeholder{color:var(--text3);}
 textarea:focus{border-color:var(--accent);background:#fff;}
 
-/* Buttons */
-.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+/* ── Buttons ── */
+.btn-row{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;}
 .btn{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 16px;border-radius:var(--r-sm);
-  font-family:var(--sans);font-size:13px;font-weight:600;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 14px;border-radius:var(--r-sm);
+  font-family:var(--sans);font-size:12.5px;font-weight:600;
   border:1.5px solid var(--border2);background:var(--surface);
-  color:var(--text2);cursor:pointer;
-  transition:all 0.12s;
+  color:var(--text2);cursor:pointer;transition:all 0.12s;
 }
-.btn:hover{background:var(--surface2);border-color:var(--border2);color:var(--text);}
+.btn:hover{background:var(--surface2);color:var(--text);}
 .btn:active{transform:scale(0.97);}
-.btn-primary{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(59,111,240,0.28);}
-.btn-primary:hover{background:#2d5cd9;color:#fff;border-color:transparent;}
-.btn-ghost{color:var(--text3);border-color:var(--border);background:transparent;}
-.btn-ghost:hover{background:var(--surface2);color:var(--text2);}
+.btn-primary{
+  background:var(--accent);color:#fff;border-color:transparent;
+  box-shadow:0 2px 6px rgba(59,111,240,0.3);
+}
+.btn-primary:hover{background:#2d5cd9;color:#fff;}
+.btn-ghost{color:var(--text3);border-color:var(--border);}
+.btn-ghost:hover{background:var(--gray-bg);color:var(--text2);}
 
-/* Error */
+/* ── Error ── */
 .error-box{
-  margin-top:10px;padding:10px 14px;
+  margin-top:8px;padding:9px 13px;
   background:var(--red-bg);border:1.5px solid #f5c0c0;
-  border-radius:var(--r-sm);font-size:13px;color:var(--red);
+  border-radius:var(--r-sm);font-size:12.5px;color:var(--red);
 }
 
-/* Section header */
-.section-wrap{width:100%;max-width:800px;margin-bottom:1rem;}
-.section-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:8px;
-}
+/* ── Section label ── */
 .section-label{
-  font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:0.07em;color:var(--text3);
-  display:flex;align-items:center;gap:7px;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.08em;color:var(--text3);margin-bottom:7px;
+  display:flex;align-items:center;gap:6px;
 }
-.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
-.dot-blue{background:var(--accent);}
-.dot-green{background:var(--green);}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-blue  {background:var(--accent);}
+.dot-green {background:var(--green);}
 .dot-purple{background:#7c5cf7;}
 
-/* Result card */
+/* ── Result card ── */
 .result-card{
   background:var(--surface);border:1.5px solid var(--border);
   border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;
 }
 .result-inner{padding:1rem 1.25rem;}
 
-/* Badges */
+/* ── Badges ── */
 .badge{
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:11px;font-weight:700;padding:3px 9px;
-  border-radius:20px;letter-spacing:0.03em;border:1.5px solid transparent;
+  display:inline-flex;align-items:center;
+  font-size:11px;font-weight:700;padding:2px 8px;
+  border-radius:20px;letter-spacing:0.02em;border:1.5px solid transparent;
 }
-.b-open   {background:var(--accent-bg);color:var(--accent);border-color:#c5d4fb;}
-.b-lost   {background:var(--red-bg);   color:var(--red);   border-color:#f5c0c0;}
-.b-won    {background:var(--green-bg); color:var(--green); border-color:#b3e6d4;}
-.b-draw   {background:var(--gray-bg);  color:var(--text2); border-color:var(--border);}
-.b-void   {background:var(--gray-bg);  color:var(--text3); border-color:var(--border);}
+.b-open   {background:var(--accent-bg);color:var(--accent);   border-color:#c5d4fb;}
+.b-lost   {background:var(--red-bg);   color:var(--red);      border-color:#f5c0c0;}
+.b-won    {background:var(--green-bg); color:var(--green);     border-color:#b3e6d4;}
+.b-draw   {background:var(--gray-bg);  color:var(--text2);     border-color:var(--border);}
+.b-void   {background:var(--gray-bg);  color:var(--text3);     border-color:var(--border);}
 .b-halfwon {background:#f0fbf6;color:#1a9e6a;border-color:#b3e6d4;}
 .b-halflost{background:#fff4f4;color:#c05050;border-color:#f5c0c0;}
-.b-cashout{background:var(--amber-bg);color:var(--amber);border-color:#fad7a5;}
-.b-t1     {background:var(--accent-bg);color:var(--accent);border-color:#c5d4fb;}
-.b-t2     {background:var(--green-bg); color:var(--green); border-color:#b3e6d4;}
+.b-cashout{background:var(--amber-bg);color:var(--amber);     border-color:#fad7a5;}
+.b-t1{background:var(--accent-bg);color:var(--accent);border-color:#c5d4fb;}
+.b-t2{background:var(--green-bg); color:var(--green); border-color:#b3e6d4;}
 
-/* Meta / sel list */
-.meta-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
-.sel-list{margin-bottom:12px;}
+/* ── Meta / sel list ── */
+.meta-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+.sel-list{margin-bottom:10px;}
 .sel-item{
   display:flex;align-items:center;gap:8px;
   font-size:12.5px;color:var(--text2);
-  padding:6px 0;border-bottom:1px solid var(--border);
+  padding:5px 0;border-bottom:1px solid var(--border);
 }
 .sel-item:last-child{border-bottom:none;}
 .sel-name{flex:1;color:var(--text);font-weight:500;}
 
-/* Copy block */
+/* ── Copy block ── */
 .copy-block{
   background:var(--surface2);border:1.5px solid var(--border);
-  border-radius:var(--r-sm);padding:12px 14px;
+  border-radius:var(--r-sm);padding:11px 13px;
 }
 .copy-text{
-  font-family:var(--mono);font-size:12.5px;color:var(--text);
-  white-space:pre-wrap;word-break:break-all;line-height:1.75;
+  font-family:var(--mono);font-size:12px;color:var(--text);
+  white-space:pre-wrap;word-break:break-all;line-height:1.8;
   user-select:all;
 }
-.copy-footer{display:flex;align-items:center;justify-content:flex-end;margin-top:10px;}
+.copy-footer{display:flex;justify-content:flex-end;margin-top:9px;}
 .copy-btn{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:5px 13px;border-radius:var(--r-sm);
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 12px;border-radius:var(--r-sm);
   border:1.5px solid var(--border2);background:var(--surface);
-  font-family:var(--sans);font-size:12px;font-weight:600;
+  font-family:var(--sans);font-size:11.5px;font-weight:600;
   color:var(--text2);cursor:pointer;transition:all 0.12s;
 }
-.copy-btn:hover{background:var(--surface2);color:var(--text);}
+.copy-btn:hover{background:var(--gray-bg);color:var(--text);}
 .copy-btn.copied{color:var(--green);border-color:#b3e6d4;background:var(--green-bg);}
 
-/* Warn banner */
+/* ── Warn banner ── */
 .warn-banner{
-  display:flex;align-items:flex-start;gap:9px;
+  display:flex;align-items:flex-start;gap:8px;
   background:var(--amber-bg);border:1.5px solid #fad7a5;
-  border-radius:var(--r-sm);padding:10px 14px;margin-bottom:12px;
-  font-size:13px;color:var(--amber);
+  border-radius:var(--r-sm);padding:9px 12px;margin-bottom:10px;
+  font-size:12.5px;color:var(--amber);
 }
 
-/* Empty */
+/* ── Empty state ── */
 .empty{
   display:flex;align-items:center;gap:8px;
-  padding:1rem 1.25rem;font-size:13px;color:var(--text3);
+  padding:1rem 1.25rem;font-size:12.5px;color:var(--text3);
 }
 
-/* Divider */
-.divider{width:100%;max-width:800px;height:1px;background:var(--border);margin:0.5rem 0 1rem;}
-
-/* ── Query Log ── */
-.log-wrap{width:100%;max-width:800px;margin-bottom:1rem;}
-.log-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;
+/* ── Query Log entries ── */
+.log-empty{
+  font-size:12.5px;color:var(--text3);text-align:center;
+  padding:2.5rem 1rem;
 }
-.log-card{
+.log-entry{
   background:var(--surface);border:1.5px solid var(--border);
-  border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;
+  border-radius:var(--r);padding:0.9rem 1rem;margin-bottom:0.625rem;
+  box-shadow:var(--shadow);transition:box-shadow 0.15s;
 }
-.log-counter{
-  font-size:11px;color:var(--text3);background:var(--surface);
-  padding:2px 8px;border-radius:20px;border:1px solid var(--border);
+.log-entry:hover{box-shadow:var(--shadow-md);}
+.log-entry-top{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:8px;margin-bottom:6px;
 }
-.log-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.log-table thead tr{background:var(--surface2);border-bottom:1.5px solid var(--border);}
-.log-table th{
-  padding:9px 12px;text-align:left;font-size:10.5px;font-weight:700;
-  letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);
+.log-entry-name{
+  font-size:12.5px;font-weight:700;color:var(--text);
+  line-height:1.4;flex:1;
 }
-.log-table td{
-  padding:9px 12px;border-bottom:1px solid var(--border);
-  vertical-align:middle;color:var(--text2);
+.log-entry-meta{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  margin-bottom:7px;
 }
-.log-table tr:last-child td{border-bottom:none;}
-.log-table tr:hover td{background:var(--surface2);}
-.td-name{color:var(--text);font-weight:600;min-width:160px;}
-.td-id{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap;}
-.td-time{font-size:11px;color:var(--text3);white-space:nowrap;}
-.log-idx{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:22px;height:22px;border-radius:50%;
-  background:var(--gray-bg);border:1.5px solid var(--border);
-  font-size:10px;color:var(--text3);font-weight:700;flex-shrink:0;
+.log-entry-id{
+  font-family:var(--mono);font-size:10.5px;color:var(--text3);
+  margin-bottom:7px;
+}
+.log-entry-time{font-size:10.5px;color:var(--text3);}
+.log-entry-actions{
+  display:flex;align-items:center;gap:6px;margin-top:8px;
 }
 .note-input{
-  width:100%;min-width:140px;font-size:12px;font-family:var(--sans);
-  color:var(--text);background:var(--surface);padding:5px 8px;
+  flex:1;font-size:12px;font-family:var(--sans);
+  color:var(--text);background:var(--surface2);padding:5px 9px;
   border:1.5px solid var(--border);border-radius:var(--r-sm);
   outline:none;transition:border-color 0.15s;
 }
 .note-input:focus{border-color:var(--accent);background:#fff;}
 .note-input::placeholder{color:var(--text3);}
-@keyframes logFadeIn{from{background:#eef2fe;}to{background:transparent;}}
-.log-new td{animation:logFadeIn 0.6s ease;}
-
-/* Footer */
-.footer{
-  width:100%;max-width:800px;text-align:center;
-  font-size:11px;color:var(--text3);
-  margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--border);
+@keyframes logSlideIn{
+  from{opacity:0;transform:translateY(-6px);}
+  to  {opacity:1;transform:translateY(0);}
 }
-@media(max-width:520px){
-  body{padding:1rem 0.75rem 3rem;}
-  .header{flex-direction:column;align-items:flex-start;gap:8px;}
-  .card{padding:1rem;}
-  .log-table th:nth-child(4),.log-table td:nth-child(4){display:none;}
+.log-entry.is-new{animation:logSlideIn 0.3s ease;}
+
+/* ── Log idx pill ── */
+.log-idx{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:20px;height:20px;padding:0 5px;
+  border-radius:10px;background:var(--gray-bg);border:1.5px solid var(--border);
+  font-size:10px;color:var(--text3);font-weight:700;flex-shrink:0;margin-top:1px;
+}
+
+/* ── Responsive ── */
+@media(max-width:800px){
+  .workspace{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto;overflow:visible;}
+  .right-panel{border-left:none;border-top:1px solid var(--border);height:auto;max-height:none;}
+  .left-panel{padding:1rem;}
 }
 </style>
 </head>
 <body>
 
-<header class="header">
+<!-- Top bar -->
+<header class="topbar">
   <div class="logo">
     <div class="logo-icon">🎯</div>
     <div>
@@ -265,119 +299,104 @@ textarea:focus{border-color:var(--accent);background:#fff;}
       <div class="logo-sub">Settlement Check Tool</div>
     </div>
   </div>
-  <span class="version">v2.0</span>
+  <span class="version">v2.1</span>
 </header>
 
-<div class="card">
-  <div class="card-title">API Log Input</div>
-  <textarea id="log-input" spellcheck="false" placeholder='Paste the full API log JSON here...'></textarea>
-  <div class="btn-row">
-    <button class="btn btn-primary" onclick="runParse()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      Parse Log
-    </button>
-    <button class="btn btn-ghost" onclick="clearInput()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.8"/></svg>
-      Clear Input
-    </button>
+<div class="workspace">
+
+  <!-- ── LEFT: Input + Results ── -->
+  <div class="left-panel">
+
+    <!-- Input -->
+    <div class="card">
+      <div class="card-title">API Log Input</div>
+      <textarea id="log-input" spellcheck="false" placeholder="Paste the full API log JSON here..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runParse()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Parse Log
+        </button>
+        <button class="btn btn-ghost" onclick="clearInput()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.8"/></svg>
+          Clear
+        </button>
+      </div>
+      <div id="error-zone"></div>
+    </div>
+
+    <!-- Results injected here -->
+    <div id="output-zone"></div>
+
   </div>
-  <div id="error-zone"></div>
-</div>
 
-<div id="output-zone" style="width:100%;max-width:800px;"></div>
-
-<div class="divider" id="log-divider" style="display:none;"></div>
-
-<!-- Query Log -->
-<div class="log-wrap" id="log-wrap" style="display:none;">
-  <div class="log-header">
-    <div class="section-label"><span class="dot dot-purple"></span>查询记录 · Query Log</div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="log-counter" id="log-counter">0 / 20</span>
-      <button class="btn btn-ghost" style="padding:5px 11px;font-size:11px;" onclick="clearLog()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-        Clear Log
-      </button>
+  <!-- ── RIGHT: Query Log ── -->
+  <div class="right-panel">
+    <div class="log-panel-header">
+      <div class="section-label" style="margin:0;">
+        <span class="dot dot-purple"></span>查询记录 · Query Log
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;">
+        <span id="log-counter" style="font-size:10.5px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:20px;border:1px solid var(--border);">0 / 20</span>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="clearLog()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Clear
+        </button>
+      </div>
+    </div>
+    <div class="log-panel-body" id="log-body">
+      <div class="log-empty" id="log-empty">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 8px;display:block;color:var(--border2);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        No records yet.<br>Parse a log to start tracking.
+      </div>
     </div>
   </div>
-  <div class="log-card">
-    <div class="empty" id="log-empty">— No records yet. Parse a log to start tracking.</div>
-    <table class="log-table" id="log-table" style="display:none;">
-      <thead>
-        <tr>
-          <th style="width:30px;">#</th>
-          <th>Event Name</th>
-          <th>Event ID</th>
-          <th>Triggered</th>
-          <th>Time</th>
-          <th>Notes</th>
-          <th style="width:58px;"></th>
-        </tr>
-      </thead>
-      <tbody id="log-tbody"></tbody>
-    </table>
-  </div>
+
 </div>
 
-<footer class="footer">
-  Betting Log Parser · Internal Tool &nbsp;·&nbsp;
-  0 Open &nbsp;1 Lost &nbsp;2 Won &nbsp;3 Draw &nbsp;4 Canceled &nbsp;16 Half Lost &nbsp;17 Half Won &nbsp;32 Cash Out
-</footer>
-
 <script>
-/* ── Constants ── */
+/* ── Constants & state ── */
 const MAX_LOG = 20;
 const STATUS = {
-  0:  {label:'Open',      cls:'b-open'},
-  1:  {label:'Lost',      cls:'b-lost'},
-  2:  {label:'Won',       cls:'b-won'},
-  3:  {label:'Draw',      cls:'b-draw'},
-  4:  {label:'Canceled',  cls:'b-void'},
-  16: {label:'Half Lost', cls:'b-halflost'},
-  17: {label:'Half Won',  cls:'b-halfwon'},
-  32: {label:'Cash Out',  cls:'b-cashout'},
+  0:{label:'Open',cls:'b-open'},1:{label:'Lost',cls:'b-lost'},
+  2:{label:'Won',cls:'b-won'},3:{label:'Draw',cls:'b-draw'},
+  4:{label:'Canceled',cls:'b-void'},16:{label:'Half Lost',cls:'b-halflost'},
+  17:{label:'Half Won',cls:'b-halfwon'},32:{label:'Cash Out',cls:'b-cashout'},
 };
-const _copyStore = {};
-const queryLog   = []; // newest = last index → displayed first
+const _store = {}; // uid -> copy text
+const queryLog = []; // newest = last element
 
 /* ── Helpers ── */
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function badgeHtml(st){ const s=STATUS[st]||{label:'#'+st,cls:'b-void'}; return `<span class="badge ${s.cls}">${s.label}</span>`; }
-
-function svgCopy(){ return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`; }
-function svgCheck(){ return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`; }
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function badgeHtml(st){const s=STATUS[st]||{label:'#'+st,cls:'b-void'};return `<span class="badge ${s.cls}">${s.label}</span>`;}
+function svgCopy(){return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;}
+function svgCheck(){return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;}
 
 function copyById(uid){
-  const text = _copyStore[uid]||'';
-  const btn  = document.getElementById(uid);
+  const text=_store[uid]||'';
+  const btn=document.getElementById(uid);
   if(!btn) return;
-  const orig = btn.innerHTML;
-  const done = ()=>{ btn.innerHTML = svgCheck()+' Copied!'; btn.classList.add('copied'); setTimeout(()=>{ btn.innerHTML=orig; btn.classList.remove('copied'); },2000); };
+  const orig=btn.innerHTML;
+  const done=()=>{btn.innerHTML=svgCheck()+' Copied!';btn.classList.add('copied');setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('copied');},2000);};
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(done).catch(()=>fbCopy(text,done));
-  } else { fbCopy(text,done); }
+  } else {fbCopy(text,done);}
 }
 function fbCopy(text,done){
-  const ta=document.createElement('textarea');
-  ta.value=text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0;';
-  document.body.appendChild(ta); ta.focus(); ta.select();
+  const ta=document.createElement('textarea');ta.value=text;
+  ta.style.cssText='position:fixed;opacity:0;top:0;left:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
   try{document.execCommand('copy');}catch(e){}
-  document.body.removeChild(ta); done();
+  document.body.removeChild(ta);done();
 }
-
 function buildCopyBlock(text,uid){
-  _copyStore[uid]=text;
+  _store[uid]=text;
   const lines=text.split('\n').map(l=>{
     const m=l.match(/^([^:]+:)\s*(.+)$/);
     if(m) return `<span style="color:var(--text3)">${esc(m[1])}</span> <span style="color:var(--text);font-weight:600;">${esc(m[2])}</span>`;
     return `<span style="color:var(--accent);font-weight:600;">${esc(l)}</span>`;
   });
-  return `<div class="copy-block">
-    <div class="copy-text">${lines.join('\n')}</div>
-    <div class="copy-footer">
-      <button class="copy-btn" id="${uid}" onclick="copyById('${uid}')">${svgCopy()} Copy to clipboard</button>
-    </div>
-  </div>`;
+  return `<div class="copy-block"><div class="copy-text">${lines.join('\n')}</div>
+    <div class="copy-footer"><button class="copy-btn" id="${uid}" onclick="copyById('${uid}')">${svgCopy()} Copy to clipboard</button></div></div>`;
 }
 
 /* ── Input clear ── */
@@ -388,69 +407,66 @@ function clearInput(){
 }
 
 /* ── Query Log ── */
-function updateNote(idx, val){ if(queryLog[idx]) queryLog[idx].notes=val; }
+function updateNote(idx,val){if(queryLog[idx])queryLog[idx].notes=val;}
 
 function clearLog(){
-  queryLog.length=0;
-  renderLog();
+  queryLog.length=0;renderLog();
 }
 
 function renderLog(){
-  const tbody  = document.getElementById('log-tbody');
-  const table  = document.getElementById('log-table');
-  const empty  = document.getElementById('log-empty');
-  const counter= document.getElementById('log-counter');
-  const wrap   = document.getElementById('log-wrap');
-  const div    = document.getElementById('log-divider');
+  const body=document.getElementById('log-body');
+  const empty=document.getElementById('log-empty');
+  const counter=document.getElementById('log-counter');
+  counter.textContent=queryLog.length+' / '+MAX_LOG;
 
-  counter.textContent = queryLog.length+' / '+MAX_LOG;
+  // Remove all entry divs (keep log-empty)
+  Array.from(body.querySelectorAll('.log-entry')).forEach(el=>el.remove());
 
   if(queryLog.length===0){
-    wrap.style.display='none'; div.style.display='none';
-    table.style.display='none'; empty.style.display='flex';
-    return;
+    empty.style.display='block'; return;
   }
-  wrap.style.display='block'; div.style.display='block';
-  empty.style.display='none'; table.style.display='table';
+  empty.style.display='none';
 
-  // display newest first: iterate from end to start
-  tbody.innerHTML = queryLog.slice().reverse().map((entry, dispIdx)=>{
-    const realIdx = queryLog.length - 1 - dispIdx; // index in queryLog array
-    const trigBadge = entry.trigger===1
-      ? `<span class="badge b-t1" style="font-size:10px;">① Unsettled</span>`
-      : `<span class="badge b-t2" style="font-size:10px;">② Settlement</span>`;
-    const isNew = dispIdx===0 ? 'log-new' : '';
-    const uid   = 'logcopy-'+realIdx+'-'+entry.eventId.replace(/\W/g,'');
-    const copyText = `Event Name: ${entry.eventName}\nEvent ID: ${entry.eventId}`;
-    _copyStore[uid] = copyText;
-    return `<tr class="${isNew}">
-      <td><span class="log-idx">${queryLog.length - dispIdx}</span></td>
-      <td class="td-name">${esc(entry.eventName)}</td>
-      <td class="td-id">${esc(entry.eventId)}</td>
-      <td>${trigBadge}</td>
-      <td class="td-time">${esc(entry.time)}</td>
-      <td><input class="note-input" placeholder="Add note…" value="${esc(entry.notes||'')}" oninput="updateNote(${realIdx},this.value)"/></td>
-      <td><button class="copy-btn" id="${uid}" onclick="copyById('${uid}')" style="padding:4px 9px;font-size:11px;white-space:nowrap;">${svgCopy()} Copy</button></td>
-    </tr>`;
-  }).join('');
+  // Insert entries newest-first, right after log-empty
+  queryLog.slice().reverse().forEach((entry,dispIdx)=>{
+    const realIdx=queryLog.length-1-dispIdx;
+    const uid='lc-'+realIdx+'-'+entry.eventId.replace(/\W/g,'');
+    const copyText='Event Name: '+entry.eventName+'\nEvent ID: '+entry.eventId;
+    _store[uid]=copyText;
+    const trigBadge=entry.trigger===1
+      ?`<span class="badge b-t1" style="font-size:10px;">① Unsettled</span>`
+      :`<span class="badge b-t2" style="font-size:10px;">② Settlement</span>`;
+    const div=document.createElement('div');
+    div.className='log-entry'+(dispIdx===0?' is-new':'');
+    div.innerHTML=`
+      <div class="log-entry-top">
+        <div class="log-entry-name">${esc(entry.eventName)}</div>
+        <span class="log-idx">${queryLog.length-dispIdx}</span>
+      </div>
+      <div class="log-entry-meta">${trigBadge}<span class="log-entry-time">${esc(entry.time)}</span></div>
+      <div class="log-entry-id">${esc(entry.eventId)}</div>
+      <div class="log-entry-actions">
+        <input class="note-input" placeholder="Add note / reference URL…" value="${esc(entry.notes||'')}" oninput="updateNote(${realIdx},this.value)"/>
+        <button class="copy-btn" id="${uid}" onclick="copyById('${uid}')" style="flex-shrink:0;padding:5px 10px;font-size:11px;">${svgCopy()} Copy</button>
+      </div>`;
+    body.appendChild(div);
+  });
 }
 
-function pushToLog(selections, trigger){
+function pushToLog(selections,trigger){
   const now=new Date();
   const timeStr=now.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
   selections.forEach(s=>{
-    const eventId   = String(s.EventId||'N/A');
-    const eventName = s.EventName||s.SelectionName||'Unknown';
-    const existIdx  = queryLog.findIndex(e=>e.eventId===eventId&&e.trigger===trigger);
+    const eventId=String(s.EventId||'N/A');
+    const eventName=s.EventName||s.SelectionName||'Unknown';
+    const existIdx=queryLog.findIndex(e=>e.eventId===eventId&&e.trigger===trigger);
     if(existIdx!==-1){
-      // Move to top: preserve notes, update time, splice out old
-      const preserved = queryLog[existIdx].notes||'';
+      const notes=queryLog[existIdx].notes||'';
       queryLog.splice(existIdx,1);
-      queryLog.push({eventName,eventId,trigger,time:timeStr,notes:preserved});
+      queryLog.push({eventName,eventId,trigger,time:timeStr,notes});
     } else {
       queryLog.push({eventName,eventId,trigger,time:timeStr,notes:''});
-      if(queryLog.length>MAX_LOG) queryLog.shift();
+      if(queryLog.length>MAX_LOG)queryLog.shift();
     }
   });
   renderLog();
@@ -458,106 +474,85 @@ function pushToLog(selections, trigger){
 
 /* ── Main parse ── */
 function runParse(){
-  const raw     = document.getElementById('log-input').value.trim();
-  const errZone = document.getElementById('error-zone');
-  const outZone = document.getElementById('output-zone');
-  errZone.innerHTML=''; outZone.innerHTML='';
+  const raw=document.getElementById('log-input').value.trim();
+  const errZone=document.getElementById('error-zone');
+  const outZone=document.getElementById('output-zone');
+  errZone.innerHTML='';outZone.innerHTML='';
 
-  if(!raw){ errZone.innerHTML='<div class="error-box">⚠ Please paste a JSON log first.</div>'; return; }
+  if(!raw){errZone.innerHTML='<div class="error-box">⚠ Please paste a JSON log first.</div>';return;}
 
   let data;
-  try {
-    // Wrap large integers (≥16 digits) as strings to avoid JS precision loss
-    const safe = raw.replace(/:\s*(\d{16,})([,\}\]\s])/g, (_,num,trail)=>`: "${num}"${trail}`);
-    data = JSON.parse(safe);
-  } catch(e){
-    errZone.innerHTML=`<div class="error-box">⚠ Invalid JSON — ${esc(e.message)}</div>`; return;
-  }
+  try{
+    const safe=raw.replace(/:\s*(\d{16,})([,\}\]\s])/g,(_,num,trail)=>`: "${num}"${trail}`);
+    data=JSON.parse(safe);
+  }catch(e){errZone.innerHTML=`<div class="error-box">⚠ Invalid JSON — ${esc(e.message)}</div>`;return;}
 
-  const selections = data.Selections||[];
-  const bets       = data.Bets||[];
-  const ticketId   = String((bets[0]&&bets[0].TicketId)||data.SQLTicketId||'N/A');
-  const now        = new Date();
+  const selections=data.Selections||[];
+  const bets=data.Bets||[];
+  const ticketId=String((bets[0]&&bets[0].TicketId)||data.SQLTicketId||'N/A');
+  const now=new Date();
 
   if(selections.length===0){
-    outZone.innerHTML='<div class="result-card"><div class="empty">⚠ No Selections found in this log.</div></div>'; return;
+    outZone.innerHTML='<div class="result-card"><div class="empty">⚠ No Selections found in this log.</div></div>';return;
   }
 
-  const openSels  = selections.filter(s=>s.SelectionStatus===0);
-  const checkSels = selections.filter(s=>[1,3,4,16,17].includes(s.SelectionStatus));
+  const openSels =selections.filter(s=>s.SelectionStatus===0);
+  const checkSels=selections.filter(s=>[1,3,4,16,17].includes(s.SelectionStatus));
 
   let html='';
 
-  /* ── Section 1: Unsettled ── */
-  html+=`<div class="section-wrap">
-    <div class="section-header">
-      <div class="section-label"><span class="dot dot-blue"></span>未结算投注检查 · Unsettled Bet Check</div>
-    </div>
+  /* Section 1 */
+  html+=`<div>
+    <div class="section-label"><span class="dot dot-blue"></span>未结算投注检查 · Unsettled Bet Check</div>
     <div class="result-card">`;
-
   if(openSels.length===0){
     html+=`<div class="empty">✓ &nbsp;No open (unsettled) selections found.</div>`;
   } else {
-    const hasNotStarted = openSels.some(s=>new Date(s.StartEventDate)>now);
-    const multi = openSels.length>1;
-    const names = openSels.map(s=>s.EventName||s.SelectionName||'Unknown');
-    const selNames = openSels.map(s=>s.SelectionName||'—');
-    const mktNames = openSels.map(s=>s.MarketName||'—');
-    const verb  = multi?'these':'it';
-    const msgBody = hasNotStarted ? '赛事尚未开始。' :
+    const hasNotStarted=openSels.some(s=>new Date(s.StartEventDate)>now);
+    const multi=openSels.length>1;
+    const names=openSels.map(s=>s.EventName||s.SelectionName||'Unknown');
+    const selNames=openSels.map(s=>s.SelectionName||'—');
+    const mktNames=openSels.map(s=>s.MarketName||'—');
+    const verb=multi?'these':'it';
+    const msgBody=hasNotStarted?'赛事尚未开始。':
       `EventName: ${names.join(', ')}\nBet ID: ${ticketId}\nSelectionName: ${selNames.join(', ')}\nMarketName: ${mktNames.join(', ')}\nPlease check if ${verb} can be settled.`;
     const uid='u1-'+Date.now();
-
     html+=`<div class="result-inner">`;
     html+=`<div class="meta-row">${badgeHtml(0)}<span style="font-size:12px;color:var(--text2);">${openSels.length} selection${multi?'s':''}</span></div>`;
     html+=`<div class="sel-list">`;
     openSels.forEach(s=>{
-      const start=new Date(s.StartEventDate);
-      const ns=start>now;
-      html+=`<div class="sel-item">
-        <span class="sel-name">${esc(s.EventName||s.SelectionName||'Unknown')}</span>
+      const start=new Date(s.StartEventDate);const ns=start>now;
+      html+=`<div class="sel-item"><span class="sel-name">${esc(s.EventName||s.SelectionName||'?')}</span>
         ${ns?`<span class="badge b-void" style="font-size:10px;">⏳ Not started</span>`:''}
-        <span style="font-size:11px;color:var(--text3);">${start.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</span>
-      </div>`;
+        <span style="font-size:11px;color:var(--text3);">${start.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</span></div>`;
     });
     html+=`</div>`;
-    if(hasNotStarted){
-      html+=`<div class="warn-banner"><span>⚠</span><div><strong>赛事尚未开始</strong><br><span style="font-size:12px;">One or more events have not started. Copy template reads: 赛事尚未开始。</span></div></div>`;
-    }
+    if(hasNotStarted){html+=`<div class="warn-banner"><span>⚠</span><div><strong>赛事尚未开始</strong><br><span style="font-size:12px;">Copy template: 赛事尚未开始。</span></div></div>`;}
     html+=buildCopyBlock(msgBody,uid);
     html+=`</div>`;
   }
   html+=`</div></div>`;
 
-  html+=`<div class="divider"></div>`;
-
-  /* ── Section 2: Settlement ── */
-  html+=`<div class="section-wrap">
-    <div class="section-header">
-      <div class="section-label"><span class="dot dot-green"></span>结算结果确认 · Settlement Verification</div>
-    </div>
+  /* Section 2 */
+  html+=`<div>
+    <div class="section-label"><span class="dot dot-green"></span>结算结果确认 · Settlement Verification</div>
     <div class="result-card">`;
-
   if(checkSels.length===0){
     html+=`<div class="empty">✓ &nbsp;No selections requiring settlement verification.</div>`;
   } else {
-    const multi2 = checkSels.length>1;
-    const names2 = checkSels.map(s=>s.EventName||s.SelectionName||'Unknown');
-    const selNames2 = checkSels.map(s=>s.SelectionName||'—');
-    const mktNames2 = checkSels.map(s=>s.MarketName||'—');
-    const verb2 = multi2?'the settlement of these':'the settlement of this';
-    const msgBody2 = `EventName: ${names2.join(', ')}\nBet ID: ${ticketId}\nSelectionName: ${selNames2.join(', ')}\nMarketName: ${mktNames2.join(', ')}\nPlease check if ${verb2} is correct.`;
+    const multi2=checkSels.length>1;
+    const names2=checkSels.map(s=>s.EventName||s.SelectionName||'Unknown');
+    const selNames2=checkSels.map(s=>s.SelectionName||'—');
+    const mktNames2=checkSels.map(s=>s.MarketName||'—');
+    const verb2=multi2?'the settlement of these':'the settlement of this';
+    const msgBody2=`EventName: ${names2.join(', ')}\nBet ID: ${ticketId}\nSelectionName: ${selNames2.join(', ')}\nMarketName: ${mktNames2.join(', ')}\nPlease check if ${verb2} is correct.`;
     const uid2='u2-'+Date.now();
-
     html+=`<div class="result-inner">`;
     const uniSt=[...new Set(checkSels.map(s=>s.SelectionStatus))];
     html+=`<div class="meta-row">${uniSt.map(st=>badgeHtml(st)).join('')}<span style="font-size:12px;color:var(--text2);">${checkSels.length} selection${multi2?'s':''}</span></div>`;
     html+=`<div class="sel-list">`;
     checkSels.forEach(s=>{
-      html+=`<div class="sel-item">
-        <span class="sel-name">${esc(s.EventName||s.SelectionName||'Unknown')}</span>
-        ${badgeHtml(s.SelectionStatus)}
-      </div>`;
+      html+=`<div class="sel-item"><span class="sel-name">${esc(s.EventName||s.SelectionName||'?')}</span>${badgeHtml(s.SelectionStatus)}</div>`;
     });
     html+=`</div>`;
     html+=buildCopyBlock(msgBody2,uid2);
@@ -566,9 +561,7 @@ function runParse(){
   html+=`</div></div>`;
 
   outZone.innerHTML=html;
-
-  // Push to query log
-  if(openSels.length>0)  pushToLog(openSels,1);
+  if(openSels.length>0) pushToLog(openSels,1);
   if(checkSels.length>0) pushToLog(checkSels,2);
 }
 </script>
