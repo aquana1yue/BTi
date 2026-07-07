@@ -380,6 +380,59 @@ const STATUS = {
   4:{label:'Canceled',cls:'b-void'},16:{label:'Half Lost',cls:'b-halflost'},
   17:{label:'Half Won',cls:'b-halfwon'},32:{label:'Cash Out',cls:'b-cashout'},
 };
+
+/* ── SiteId → Platform name lookup ── */
+const SITE_MAP = {
+  20550: 'hapigou', 20549: 'DFGROUPS', 20547: 'TRG001',
+  20541: 'Winboxwlt', 20540: 'Bitsler', 20539: 'ExoLabs', 20538: 'unicasino00',
+  20537: 'AluminisSL', 20531: 'INSERTGAMESL', 20528: '100panalo', 20529: 'S5Game',
+  20526: 'QueenNinja', 20525: 'BCGameth', 20523: 'Filbet', 20521: 'GlobalTech',
+  20515: 'QuantumPlay', 20516: 'HighendKO', 20511: '998v2',
+  20502: 'TopOne', 20504: 'NextralSL', 20500: 'Aone33my', 20498: 'BGJWLT',
+  20497: 'AIXSWL', 20496: 'BGJSL', 20494: 'OXPLAY', 20493: 'Betkuku',
+  20492: 'Liboasia', 20491: 'IBIresell', 20490: 'MClubCredit', 20488: 'ZenithEU',
+  20485: 'KZsports', 20482: '88Wager', 20481: 'INFVN8', 20478: 'V9Betsb',
+  20477: 'RICHAPI', 20475: 'LogicX1', 20474: 'APBsolution', 20473: 'Neftsoft',
+  20471: 'AMBsuperSL', 20470: 'FUNGOIT', 20469: 'GAMTING', 20468: 'IDNUPPRO',
+  20464: 'Deejay', 20459: 'GROUPIG', 20457: 'UFAGOAT', 20455: 'GplayGUFAPlus',
+  20448: 'MPOAIXTW', 20445: 'Nexiux', 20444: 'WGS1688', 20437: 'Casinoplus',
+  20428: 'BITWIN', 20427: 'TitanHubWLT', 20426: 'Aluminis', 20423: 'GA8888',
+  20417: 'GrandEUR', 20416: 'SuperswanZT3', 20415: 'Lazer7', 20413: 'BETEAST',
+  20412: 'Ambnsb', 20407: 'TitanHubSL', 20408: 'HappyAce', 20405: 'Speedix',
+  20402: 'BCGAME', 20410: 'GMAGTOP', 20400: 'Totocloud', 20393: 'COPSports',
+  20382: 'Royalplay', 20376: 'GP416IB88', 20369: 'Honorlink', 20372: 'VedaGaming',
+  20362: '2UPiogroup', 20361: 'Dragonfly', 20360: 'SUPBIT', 20355: 'SuperswanZT2',
+  20346: 'RubyGame', 20344: 'HT88tech', 20343: 'SharpSports', 20342: 'LiveSports',
+  20341: 'YuanSports', 20340: 'IGGroupSL', 20339: 'IGGroupWLT', 20337: 'gwtech',
+  20323: 'StarbetWlt', 20321: 'caerus88', 20319: 'ezbet1', 20316: 'SuperSwanZF1',
+  20394: 'LOTO188betSL', 20313: 'Superswansl', 20311: 'Expimz', 20300: 'SplusSL',
+  20299: 'SplusWLT', 20298: 'AMBFeed', 20293: 'EZbetV2', 20290: 'DGnine',
+  20287: 'XIMAX2', 20285: 'MSports', 20273: 'BT1wallet', 20272: 'BT1seamless',
+  20268: 'SEAGwlt', 20266: 'GBETsportsl', 20265: '7Lucky', 20262: 'w88seamless',
+  20256: 'DCsunrise', 20254: 'LUCASPORTS', 20253: 'NYSPORTS', 25009: 'Wcbgcsl',
+  20244: 'Wcpop1sl', 20243: 'Wcctpsl', 20242: 'Wcctpwlt', 20241: 'Wcpop1wlt',
+  20219: 'KzingSW', 20217: 'Dawoobet', 25000: 'BW88SL', 20208: 'RaiseTechSL',
+  20200: 'SLTest', 20198: 'EZbetSports', 20195: 'WDBwlt', 20191: 'UGSportSL',
+  20189: 'NJCGROUPSL', 20188: 'BetEnjoy (Winka)', 20182: 'GSCFTW', 20177: 'RTNJCWLT',
+  20171: 'RTSeinLuckyCoLtd', 20166: 'RTnova88', 20144: 'XTadmin', 20142: '368Cash',
+  20130: 'LDSports', 20129: 'AISports', 20123: 'WDBBSPORT', 20121: 'BTTB2B',
+  20101: 'Theonebet', 20091: 'TechPlay', 20087: 'M88bsports', 20082: 'Superswanwlt',
+  20078: 'Fun88Sandbox', 20075: 'X2DYNAMIC', 20070: 'FB88Bet', 20063: 'ManbetX',
+  20059: 'Kzing88', 20058: 'AEWL88', 20056: 'Big88com', 20029: '24TechSLM',
+  20027: '777WLT', 20024: 'GPlayG', 20022: 'EMCBet', 20020: 'Aplus777',
+  322: 'SgameTV', 321: 'BtiAsiaWlt', 315: 'RaiseTechWLT', 285: 'JBOSPORTS',
+  266: 'TCGaming', 228: '24Tech', 219: 'Five88', 213: 'Fun88asia',
+  188: '10BetKRSM', 141: 'BTT', 65: 'W88SL'
+};
+// Looks up the platform name for the log's Customer.SiteId. Falls back to
+// "Site <id>" for an unmapped id, and '' if no SiteId is present at all
+// (so the copy text simply omits the line rather than showing "undefined").
+function getSiteLabel(data){
+  const siteId=data.Customer&&data.Customer.SiteId;
+  if(siteId===undefined||siteId===null||siteId==='') return '';
+  return SITE_MAP[siteId]||('Site '+siteId);
+}
+
 const _store = {}; // uid -> copy text
 const queryLog = []; // newest = last element
 
@@ -492,8 +545,8 @@ function pushToLog(selections,trigger){
 
 /* ── Event grouping (parlay / combo support) ── */
 const sectionState = {
-  unsettled:{groups:[],selectedIdx:0,ticketId:'N/A',kind:'unsettled'},
-  settle:{groups:[],selectedIdx:0,ticketId:'N/A',kind:'settle'}
+  unsettled:{groups:[],selectedIdx:0,ticketId:'N/A',siteName:'',kind:'unsettled'},
+  settle:{groups:[],selectedIdx:0,ticketId:'N/A',siteName:'',kind:'settle'}
 };
 
 // Groups a flat selections array into one entry per unique EventId, so a
@@ -529,10 +582,11 @@ function buildEventTabs(sectionKey){
 // Builds the card contents (selection list + copy block) for a single
 // event group. The event name is shown once, even if the group has
 // several selections (same event, multiple markets).
-function buildEventCardInner(group,ticketId,kind){
+function buildEventCardInner(group,ticketId,kind,siteName){
   const sels=group.sels;
   const eventName=group.eventName;
   const multi=sels.length>1;
+  const siteSuffix=siteName?('\n'+siteName):'';
   let html=`<div class="result-inner">`;
 
   if(kind==='unsettled'){
@@ -552,8 +606,8 @@ function buildEventCardInner(group,ticketId,kind){
     const selNames=sels.map(s=>s.SelectionName||'—').join(', ');
     const mktNames=sels.map(s=>s.MarketName||'—').join(', ');
     const verb=multi?'these':'it';
-    const msgBody=hasNotStarted?'赛事尚未开始。':
-      `EventName: ${eventName}\nBet ID: ${ticketId}\nSelectionName: ${selNames}\nMarketName: ${mktNames}\nPlease check if ${verb} can be settled.`;
+    const msgBody=(hasNotStarted?'赛事尚未开始。':
+      `EventName: ${eventName}\nBet ID: ${ticketId}\nSelectionName: ${selNames}\nMarketName: ${mktNames}\nPlease check if ${verb} can be settled.`)+siteSuffix;
     const uid='u1-'+group.eventId.replace(/\W/g,'')+'-'+Math.random().toString(36).slice(2,8);
     html+=buildCopyBlock(msgBody,uid);
   } else {
@@ -568,7 +622,7 @@ function buildEventCardInner(group,ticketId,kind){
     const selNames=sels.map(s=>s.SelectionName||'—').join(', ');
     const mktNames=sels.map(s=>s.MarketName||'—').join(', ');
     const verb=multi?'the settlement of these':'the settlement of this';
-    const msgBody=`EventName: ${eventName}\nBet ID: ${ticketId}\nSelectionName: ${selNames}\nMarketName: ${mktNames}\nPlease check if ${verb} is correct.`;
+    const msgBody=`EventName: ${eventName}\nBet ID: ${ticketId}\nSelectionName: ${selNames}\nMarketName: ${mktNames}\nPlease check if ${verb} is correct.`+siteSuffix;
     const uid='u2-'+group.eventId.replace(/\W/g,'')+'-'+Math.random().toString(36).slice(2,8);
     html+=buildCopyBlock(msgBody,uid);
   }
@@ -585,7 +639,7 @@ function sectionContentHtml(sectionKey){
     return `<div class="result-card"><div class="empty">✓ &nbsp;${msg}</div></div>`;
   }
   let html=buildEventTabs(sectionKey);
-  html+=`<div class="result-card">${buildEventCardInner(state.groups[state.selectedIdx],state.ticketId,state.kind)}</div>`;
+  html+=`<div class="result-card">${buildEventCardInner(state.groups[state.selectedIdx],state.ticketId,state.kind,state.siteName)}</div>`;
   return html;
 }
 
@@ -619,6 +673,7 @@ function runParse(){
   const selections=data.Selections||[];
   const bets=data.Bets||[];
   const ticketId=String((bets[0]&&bets[0].TicketId)||data.SQLTicketId||'N/A');
+  const siteName=getSiteLabel(data);
   const now=new Date();
 
   if(selections.length===0){
@@ -633,8 +688,8 @@ function runParse(){
   // combo spanning several different events gets a tab selector.
   const openGroups =groupByEvent(openSels);
   const checkGroups=groupByEvent(checkSels);
-  sectionState.unsettled={groups:openGroups, selectedIdx:0,ticketId,kind:'unsettled'};
-  sectionState.settle   ={groups:checkGroups,selectedIdx:0,ticketId,kind:'settle'};
+  sectionState.unsettled={groups:openGroups, selectedIdx:0,ticketId,siteName,kind:'unsettled'};
+  sectionState.settle   ={groups:checkGroups,selectedIdx:0,ticketId,siteName,kind:'settle'};
 
   let html='';
   html+=`<div>
