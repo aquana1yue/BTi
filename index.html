@@ -139,6 +139,24 @@ textarea:focus{border-color:var(--accent);background:#fff;}
 .btn-ghost{color:var(--text3);border-color:var(--border);}
 .btn-ghost:hover{background:var(--gray-bg);color:var(--text2);}
 
+/* ── Event tabs (multi-event selector) ── */
+.event-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.event-tab-btn{
+  padding:6px 13px;border-radius:20px;
+  font-family:var(--sans);font-size:12px;font-weight:600;
+  border:1.5px solid var(--border2);background:var(--surface);
+  color:var(--text2);cursor:pointer;transition:all 0.12s;
+}
+.event-tab-btn:hover{background:var(--surface2);color:var(--text);}
+.event-tab-btn.active{
+  background:var(--accent);color:#fff;border-color:transparent;
+  box-shadow:0 2px 6px rgba(59,111,240,0.3);
+}
+.event-name-header{
+  font-size:13.5px;font-weight:700;color:var(--text);
+  margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed var(--border);
+}
+
 /* ── Error ── */
 .error-box{
   margin-top:8px;padding:9px 13px;
@@ -472,6 +490,117 @@ function pushToLog(selections,trigger){
   renderLog();
 }
 
+/* ── Event grouping (parlay / combo support) ── */
+const sectionState = {
+  unsettled:{groups:[],selectedIdx:0,ticketId:'N/A',kind:'unsettled'},
+  settle:{groups:[],selectedIdx:0,ticketId:'N/A',kind:'settle'}
+};
+
+// Groups a flat selections array into one entry per unique EventId, so a
+// parlay/combo bet with several selections on the same event is only
+// listed once instead of being repeated per-selection.
+function groupByEvent(sels){
+  const map=new Map();
+  sels.forEach(s=>{
+    const eventId=String(s.EventId||'N/A');
+    if(!map.has(eventId)){
+      map.set(eventId,{eventId,eventName:s.EventName||s.SelectionName||'Unknown',sels:[]});
+    }
+    map.get(eventId).sels.push(s);
+  });
+  return Array.from(map.values());
+}
+
+// Renders the "which event do you want to see" pill buttons. Only shown
+// when a bet spans 2+ different events (a normal combo/parlay).
+function buildEventTabs(sectionKey){
+  const state=sectionState[sectionKey];
+  if(state.groups.length<=1) return '';
+  let html=`<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">检测到 ${state.groups.length} 场不同赛事，请选择要显示的赛事 · ${state.groups.length} events detected — select one to display</div>`;
+  html+=`<div class="event-tabs">`;
+  state.groups.forEach((g,idx)=>{
+    const active=idx===state.selectedIdx;
+    html+=`<button class="event-tab-btn${active?' active':''}" onclick="selectEvent('${sectionKey}',${idx})">${esc(g.eventName)}</button>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+// Builds the card contents (selection list + copy block) for a single
+// event group. The event name is shown once, even if the group has
+// several selections (same event, multiple markets).
+function buildEventCardInner(group,ticketId,kind){
+  const sels=group.sels;
+  const eventName=group.eventName;
+  const multi=sels.length>1;
+  let html=`<div class="result-inner">`;
+
+  if(kind==='unsettled'){
+    const now=new Date();
+    const hasNotStarted=sels.some(s=>new Date(s.StartEventDate)>now);
+    html+=`<div class="meta-row">${badgeHtml(0)}<span style="font-size:12px;color:var(--text2);">${sels.length} selection${multi?'s':''}</span></div>`;
+    html+=`<div class="event-name-header">${esc(eventName)}</div>`;
+    html+=`<div class="sel-list">`;
+    sels.forEach(s=>{
+      const start=new Date(s.StartEventDate);const ns=start>now;
+      html+=`<div class="sel-item"><span class="sel-name">${esc(s.SelectionName||'—')} <span style="color:var(--text3);font-weight:400;">(${esc(s.MarketName||'—')})</span></span>
+        ${ns?`<span class="badge b-void" style="font-size:10px;">⏳ Not started</span>`:''}
+        <span style="font-size:11px;color:var(--text3);">${start.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</span></div>`;
+    });
+    html+=`</div>`;
+    if(hasNotStarted){html+=`<div class="warn-banner"><span>⚠</span><div><strong>赛事尚未开始</strong><br><span style="font-size:12px;">Copy template: 赛事尚未开始。</span></div></div>`;}
+    const selNames=sels.map(s=>s.SelectionName||'—').join(', ');
+    const mktNames=sels.map(s=>s.MarketName||'—').join(', ');
+    const verb=multi?'these':'it';
+    const msgBody=hasNotStarted?'赛事尚未开始。':
+      `EventName: ${eventName}\nBet ID: ${ticketId}\nSelectionName: ${selNames}\nMarketName: ${mktNames}\nPlease check if ${verb} can be settled.`;
+    const uid='u1-'+group.eventId.replace(/\W/g,'')+'-'+Math.random().toString(36).slice(2,8);
+    html+=buildCopyBlock(msgBody,uid);
+  } else {
+    const uniSt=[...new Set(sels.map(s=>s.SelectionStatus))];
+    html+=`<div class="meta-row">${uniSt.map(st=>badgeHtml(st)).join('')}<span style="font-size:12px;color:var(--text2);">${sels.length} selection${multi?'s':''}</span></div>`;
+    html+=`<div class="event-name-header">${esc(eventName)}</div>`;
+    html+=`<div class="sel-list">`;
+    sels.forEach(s=>{
+      html+=`<div class="sel-item"><span class="sel-name">${esc(s.SelectionName||'—')} <span style="color:var(--text3);font-weight:400;">(${esc(s.MarketName||'—')})</span></span>${badgeHtml(s.SelectionStatus)}</div>`;
+    });
+    html+=`</div>`;
+    const selNames=sels.map(s=>s.SelectionName||'—').join(', ');
+    const mktNames=sels.map(s=>s.MarketName||'—').join(', ');
+    const verb=multi?'the settlement of these':'the settlement of this';
+    const msgBody=`EventName: ${eventName}\nBet ID: ${ticketId}\nSelectionName: ${selNames}\nMarketName: ${mktNames}\nPlease check if ${verb} is correct.`;
+    const uid='u2-'+group.eventId.replace(/\W/g,'')+'-'+Math.random().toString(36).slice(2,8);
+    html+=buildCopyBlock(msgBody,uid);
+  }
+  html+=`</div>`;
+  return html;
+}
+
+// Builds the full section content: tabs (if multiple events) + the card
+// for whichever event is currently selected.
+function sectionContentHtml(sectionKey){
+  const state=sectionState[sectionKey];
+  if(state.groups.length===0){
+    const msg=state.kind==='unsettled'?'No open (unsettled) selections found.':'No selections requiring settlement verification.';
+    return `<div class="result-card"><div class="empty">✓ &nbsp;${msg}</div></div>`;
+  }
+  let html=buildEventTabs(sectionKey);
+  html+=`<div class="result-card">${buildEventCardInner(state.groups[state.selectedIdx],state.ticketId,state.kind)}</div>`;
+  return html;
+}
+
+function renderSectionContainer(sectionKey){
+  const containerId=sectionKey==='unsettled'?'sec1-container':'sec2-container';
+  const el=document.getElementById(containerId);
+  if(el) el.innerHTML=sectionContentHtml(sectionKey);
+}
+
+// Called when the user clicks an event tab button.
+function selectEvent(sectionKey,idx){
+  sectionState[sectionKey].selectedIdx=idx;
+  renderSectionContainer(sectionKey);
+}
+
 /* ── Main parse ── */
 function runParse(){
   const raw=document.getElementById('log-input').value.trim();
@@ -499,68 +628,28 @@ function runParse(){
   const openSels =selections.filter(s=>s.SelectionStatus===0);
   const checkSels=selections.filter(s=>[1,3,4,16,17].includes(s.SelectionStatus));
 
-  let html='';
+  // Group each bucket by EventId so a parlay/combo with several
+  // selections on the same event only shows that event once, and a
+  // combo spanning several different events gets a tab selector.
+  const openGroups =groupByEvent(openSels);
+  const checkGroups=groupByEvent(checkSels);
+  sectionState.unsettled={groups:openGroups, selectedIdx:0,ticketId,kind:'unsettled'};
+  sectionState.settle   ={groups:checkGroups,selectedIdx:0,ticketId,kind:'settle'};
 
-  /* Section 1 */
+  let html='';
   html+=`<div>
     <div class="section-label"><span class="dot dot-blue"></span>未结算投注检查 · Unsettled Bet Check</div>
-    <div class="result-card">`;
-  if(openSels.length===0){
-    html+=`<div class="empty">✓ &nbsp;No open (unsettled) selections found.</div>`;
-  } else {
-    const hasNotStarted=openSels.some(s=>new Date(s.StartEventDate)>now);
-    const multi=openSels.length>1;
-    const names=openSels.map(s=>s.EventName||s.SelectionName||'Unknown');
-    const selNames=openSels.map(s=>s.SelectionName||'—');
-    const mktNames=openSels.map(s=>s.MarketName||'—');
-    const verb=multi?'these':'it';
-    const msgBody=hasNotStarted?'赛事尚未开始。':
-      `EventName: ${names.join(', ')}\nBet ID: ${ticketId}\nSelectionName: ${selNames.join(', ')}\nMarketName: ${mktNames.join(', ')}\nPlease check if ${verb} can be settled.`;
-    const uid='u1-'+Date.now();
-    html+=`<div class="result-inner">`;
-    html+=`<div class="meta-row">${badgeHtml(0)}<span style="font-size:12px;color:var(--text2);">${openSels.length} selection${multi?'s':''}</span></div>`;
-    html+=`<div class="sel-list">`;
-    openSels.forEach(s=>{
-      const start=new Date(s.StartEventDate);const ns=start>now;
-      html+=`<div class="sel-item"><span class="sel-name">${esc(s.EventName||s.SelectionName||'?')}</span>
-        ${ns?`<span class="badge b-void" style="font-size:10px;">⏳ Not started</span>`:''}
-        <span style="font-size:11px;color:var(--text3);">${start.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</span></div>`;
-    });
-    html+=`</div>`;
-    if(hasNotStarted){html+=`<div class="warn-banner"><span>⚠</span><div><strong>赛事尚未开始</strong><br><span style="font-size:12px;">Copy template: 赛事尚未开始。</span></div></div>`;}
-    html+=buildCopyBlock(msgBody,uid);
-    html+=`</div>`;
-  }
-  html+=`</div></div>`;
-
-  /* Section 2 */
+    <div id="sec1-container"></div>
+  </div>`;
   html+=`<div>
     <div class="section-label"><span class="dot dot-green"></span>结算结果确认 · Settlement Verification</div>
-    <div class="result-card">`;
-  if(checkSels.length===0){
-    html+=`<div class="empty">✓ &nbsp;No selections requiring settlement verification.</div>`;
-  } else {
-    const multi2=checkSels.length>1;
-    const names2=checkSels.map(s=>s.EventName||s.SelectionName||'Unknown');
-    const selNames2=checkSels.map(s=>s.SelectionName||'—');
-    const mktNames2=checkSels.map(s=>s.MarketName||'—');
-    const verb2=multi2?'the settlement of these':'the settlement of this';
-    const msgBody2=`EventName: ${names2.join(', ')}\nBet ID: ${ticketId}\nSelectionName: ${selNames2.join(', ')}\nMarketName: ${mktNames2.join(', ')}\nPlease check if ${verb2} is correct.`;
-    const uid2='u2-'+Date.now();
-    html+=`<div class="result-inner">`;
-    const uniSt=[...new Set(checkSels.map(s=>s.SelectionStatus))];
-    html+=`<div class="meta-row">${uniSt.map(st=>badgeHtml(st)).join('')}<span style="font-size:12px;color:var(--text2);">${checkSels.length} selection${multi2?'s':''}</span></div>`;
-    html+=`<div class="sel-list">`;
-    checkSels.forEach(s=>{
-      html+=`<div class="sel-item"><span class="sel-name">${esc(s.EventName||s.SelectionName||'?')}</span>${badgeHtml(s.SelectionStatus)}</div>`;
-    });
-    html+=`</div>`;
-    html+=buildCopyBlock(msgBody2,uid2);
-    html+=`</div>`;
-  }
-  html+=`</div></div>`;
+    <div id="sec2-container"></div>
+  </div>`;
 
   outZone.innerHTML=html;
+  renderSectionContainer('unsettled');
+  renderSectionContainer('settle');
+
   if(openSels.length>0) pushToLog(openSels,1);
   if(checkSels.length>0) pushToLog(checkSels,2);
 }
