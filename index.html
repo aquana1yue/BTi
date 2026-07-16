@@ -545,9 +545,26 @@ function pushToLog(selections,trigger){
 
 /* ── Event grouping (parlay / combo support) ── */
 const sectionState = {
-  unsettled:{groups:[],selectedIdx:0,ticketId:'N/A',siteName:'',kind:'unsettled'},
-  settle:{groups:[],selectedIdx:0,ticketId:'N/A',siteName:'',kind:'settle'}
+  unsettled:{groups:[],selectedIdx:0,ticketId:'N/A',siteName:'',kind:'unsettled',filtered:0},
+  settle:{groups:[],selectedIdx:0,ticketId:'N/A',siteName:'',kind:'settle',filtered:0}
 };
+
+// A same-match parlay adds a synthetic "combo summary" row on top of the
+// real legs — it carries every leg's name pipe-joined into one string
+// (e.g. "Argentina -0.5 | Argentina | Under 5.5 ..."). It is not a real
+// selection and must never be reported, or it pollutes the output.
+//
+// Identified by the virtual market/selection id prefixes (0VM / 0VS),
+// with a structural fallback: a pipe-joined name on a row that carries
+// no real market of its own (LineTypeId 0 + RowTypeId 0).
+function isAggregateSelection(s){
+  const selId=String(s.SelectionId||'');
+  const mktId=String(s.MarketId||'');
+  if(/^\d*VS/.test(selId)||/^\d*VM/.test(mktId)) return true;
+  const name=String(s.SelectionName||'');
+  if(name.includes('|')&&s.LineTypeId===0&&s.RowTypeId===0) return true;
+  return false;
+}
 
 // Groups a flat selections array into one entry per unique EventId, so a
 // parlay/combo bet with several selections on the same event is only
@@ -639,6 +656,9 @@ function sectionContentHtml(sectionKey){
     return `<div class="result-card"><div class="empty">✓ &nbsp;${msg}</div></div>`;
   }
   let html=buildEventTabs(sectionKey);
+  if(state.filtered>0){
+    html+=`<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">已忽略 ${state.filtered} 条串关汇总行 · ${state.filtered} combo summary row${state.filtered>1?'s':''} ignored</div>`;
+  }
   html+=`<div class="result-card">${buildEventCardInner(state.groups[state.selectedIdx],state.ticketId,state.kind,state.siteName)}</div>`;
   return html;
 }
@@ -680,16 +700,25 @@ function runParse(){
     outZone.innerHTML='<div class="result-card"><div class="empty">⚠ No Selections found in this log.</div></div>';return;
   }
 
-  const openSels =selections.filter(s=>s.SelectionStatus===0);
-  const checkSels=selections.filter(s=>[1,3,4,16,17].includes(s.SelectionStatus));
+  // Drop the synthetic combo-summary rows before anything else — they are
+  // not real legs and would otherwise show up as a pipe-joined mess.
+  const realSels=selections.filter(s=>!isAggregateSelection(s));
+  const filteredCount=selections.length-realSels.length;
+
+  if(realSels.length===0){
+    outZone.innerHTML='<div class="result-card"><div class="empty">⚠ No real selections found in this log (only combo summary rows).</div></div>';return;
+  }
+
+  const openSels =realSels.filter(s=>s.SelectionStatus===0);
+  const checkSels=realSels.filter(s=>[1,3,4,16,17].includes(s.SelectionStatus));
 
   // Group each bucket by EventId so a parlay/combo with several
   // selections on the same event only shows that event once, and a
   // combo spanning several different events gets a tab selector.
   const openGroups =groupByEvent(openSels);
   const checkGroups=groupByEvent(checkSels);
-  sectionState.unsettled={groups:openGroups, selectedIdx:0,ticketId,siteName,kind:'unsettled'};
-  sectionState.settle   ={groups:checkGroups,selectedIdx:0,ticketId,siteName,kind:'settle'};
+  sectionState.unsettled={groups:openGroups, selectedIdx:0,ticketId,siteName,kind:'unsettled',filtered:filteredCount};
+  sectionState.settle   ={groups:checkGroups,selectedIdx:0,ticketId,siteName,kind:'settle',filtered:filteredCount};
 
   let html='';
   html+=`<div>
